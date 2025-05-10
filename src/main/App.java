@@ -21,12 +21,11 @@ public class App {
 		System.out.println(cofrinho.getSaldo());
 		System.out.println(cofrinho.valorPorMoeda());
 		
-		cofrinho.retirarValorDeUmaTipoDeMoeda(dolar2, 3);
+		cofrinho.retirarValorDeUmaTipoDeMoeda(dolar2, 15);
 		
 		System.out.println(cofrinho.valorPorMoeda());
 		System.out.println(cofrinho.getSaldo());
 		
-		cofrinho.retirarValor(3);
 		
 		System.out.println(cofrinho.valorPorMoeda());
 		System.out.println(cofrinho.getSaldo());

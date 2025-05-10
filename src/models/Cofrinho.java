@@ -44,8 +44,7 @@ public class Cofrinho {
 	    	
 	    }else {
 			
-			double total = saldoPorMoeda.values().stream().mapToDouble(v -> v).sum();
-	        if (valor > total) {
+	        if (valor > saldo) {
 	            throw new IllegalArgumentException("Saldo total insuficiente para a retirada.");
 	        }
 	        
