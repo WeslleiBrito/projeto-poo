@@ -2,6 +2,7 @@ package main;
 
 import models.Cofrinho;
 import models.Dolar;
+import models.HistoricoTransacao;
 import models.Real;
 
 public class App {
@@ -17,18 +18,12 @@ public class App {
 		cofrinho.adicionar(dolar);
 		cofrinho.adicionar(real);
 		cofrinho.adicionar(dolar2);
+		cofrinho.retirarValorDeUmaTipoDeMoeda(dolar, 5);
+		cofrinho.retirarValor(15);
 		
-		System.out.println(cofrinho.getSaldo());
-		System.out.println(cofrinho.valorPorMoeda());
-		
-		cofrinho.retirarValorDeUmaTipoDeMoeda(dolar2, 15);
-		
-		System.out.println(cofrinho.valorPorMoeda());
-		System.out.println(cofrinho.getSaldo());
-		
-		
-		System.out.println(cofrinho.valorPorMoeda());
-		System.out.println(cofrinho.getSaldo());
+		for(HistoricoTransacao historico : cofrinho.getHistorico()) {
+			System.out.println(historico.toString());
+		}
 		
 		
 	}

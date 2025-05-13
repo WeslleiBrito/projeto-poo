@@ -1,5 +1,4 @@
 package models;
-
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -12,16 +11,19 @@ public class Cofrinho {
 	
 	private ArrayList<Moeda> cofre;
 	private double saldo = 0.0;
+	private ArrayList<HistoricoTransacao> historicoTransacoes;
 	
 	public Cofrinho() {
 		cofre = new ArrayList<>();
 		atualizarSaldo();
-		
+		this.historicoTransacoes = new ArrayList<>();
 	}
 	
 	public void adicionar(Moeda moeda) {
 		this.cofre.add(moeda);
 		atualizarSaldo();
+		
+		historicoTransacoes.add(new HistoricoTransacao(moeda, true, saldo));
 	}
 	
 	private boolean retiradaValida (String nomeMoeda, double valor, boolean paraEstaMoeda) {
@@ -53,7 +55,6 @@ public class Cofrinho {
 		return true;
 	}
 	
-	
 	private static String normalizaChave(String chave) {
 		String normalizada = Normalizer.normalize(chave.toLowerCase(), Normalizer.Form.NFD);
 		return normalizada.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
@@ -72,15 +73,17 @@ public class Cofrinho {
 	    return mapaAgrupado;
 	}
 	
-	
 	private void atualizarSaldo() {
 		saldo = cofre.stream().mapToDouble(m -> m.converter()).sum();
+	}
+	
+	private void registrarTransacao(Moeda moeda, boolean tipoTransacao) {
+	    historicoTransacoes.add(new HistoricoTransacao(moeda, tipoTransacao, saldo));
 	}
 	
 	public Map<String, Double> valorPorMoeda(){
 		return agruparValorPorMoeda();
 	}
-	
 	
 	public void retirarValorDeUmaTipoDeMoeda(Moeda moeda, double valor) {
 
@@ -116,9 +119,9 @@ public class Cofrinho {
 	    }
 	    
 	    atualizarSaldo();
+	    registrarTransacao(moeda, false);
 	}
 
-	
 	public void retirarValor(double valor) {
 	    if (retiradaValida("", valor, false)) {
 	        double restante = valor;
@@ -151,8 +154,10 @@ public class Cofrinho {
 	    }
 	    
 	    atualizarSaldo();
+	    registrarTransacao(new Real(valor, 1), false);
 	}
 
-	
 	public double getSaldo() {return saldo;}
+	
+	public ArrayList<HistoricoTransacao> getHistorico() {return historicoTransacoes;}
 }

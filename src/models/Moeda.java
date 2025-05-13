@@ -10,9 +10,6 @@ public abstract class Moeda {
 	
 	public Moeda(String nomeMoedaSingular, String nomeMoedaPlural, double valor, double cambio) {
 		
-		
-		
-		
 		if (valor < 0) {
 			
 			throw new  IllegalArgumentException("Informe um valor maior que zero.");
