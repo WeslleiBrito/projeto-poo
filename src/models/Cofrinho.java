@@ -98,10 +98,9 @@ public class Cofrinho {
 	                double valMoeda = m.getValor();
 
 	                if (valMoeda <= restante) {
-	                    // Remove moeda inteira
 	                    restante -= valMoeda;
 	                    cofre.remove(i);
-	                    i--; // Corrige índice após remoção
+	                    i--;
 	                } else {
 	                    
 	                    m.setValor(valMoeda - restante);
@@ -113,7 +112,6 @@ public class Cofrinho {
 	            }
 	        }
 
-	        // Atualiza saldo
 	        saldo -= valor;
 	        if (saldo < 0) saldo = 0;
 	    }
