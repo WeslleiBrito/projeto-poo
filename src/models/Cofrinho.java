@@ -1,161 +1,122 @@
 package models;
+
 import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-
-
+import java.util.*;
 
 public class Cofrinho {
-	
-	private ArrayList<Moeda> cofre;
-	private double saldo = 0.0;
-	private ArrayList<HistoricoTransacao> historicoTransacoes;
-	
-	public Cofrinho() {
-		cofre = new ArrayList<>();
-		atualizarSaldo();
-		this.historicoTransacoes = new ArrayList<>();
-	}
-	
-	public void adicionar(Moeda moeda) {
-		this.cofre.add(moeda);
-		atualizarSaldo();
-		
-		historicoTransacoes.add(new HistoricoTransacao(moeda, true, saldo));
-	}
-	
-	private boolean retiradaValida (String nomeMoeda, double valor, boolean paraEstaMoeda) {
-		
-		Map<String, Double> saldoPorMoeda = agruparValorPorMoeda();
-		
-	    String chave = normalizaChave(nomeMoeda);
-	    
-	    if(paraEstaMoeda) {
-	    	
-	    	if(saldoPorMoeda.containsKey(chave)) {
-				
-				if(valor > saldoPorMoeda.get(chave)) {
-					throw new IllegalArgumentException("Você não tem saldo suficiente para retirada dessa moeda.");
-				}	
-				
-			}else {
-				throw new IllegalArgumentException("A moeda informada não existe.");
-			}
-	    	
-	    }else {
-			
-	        if (valor > saldo) {
-	            throw new IllegalArgumentException("Saldo total insuficiente para a retirada.");
-	        }
-	        
-		}
-		
-		return true;
-	}
-	
-	private static String normalizaChave(String chave) {
-		String normalizada = Normalizer.normalize(chave.toLowerCase(), Normalizer.Form.NFD);
-		return normalizada.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-	}
-	
-	private Map<String, Double> agruparValorPorMoeda() {
-	    Map<String, Double> mapaAgrupado = new HashMap<>();
 
-	    cofre.forEach(moeda -> {
-	        String chave = normalizaChave(moeda.getNomeMoedaSingular());
-	        double valor = moeda.getValor();
+    private final List<Moeda> cofre;
+    private final List<HistoricoTransacao> historicoTransacoes;
 
-	        mapaAgrupado.merge(chave, valor, Double::sum);
-	    });
+    public Cofrinho() {
+        this.cofre = new ArrayList<>();
+        this.historicoTransacoes = new ArrayList<>();
+    }
 
-	    return mapaAgrupado;
-	}
-	
-	private void atualizarSaldo() {
-		saldo = cofre.stream().mapToDouble(m -> m.converter()).sum();
-	}
-	
-	private void registrarTransacao(Moeda moeda, boolean tipoTransacao) {
-	    historicoTransacoes.add(new HistoricoTransacao(moeda, tipoTransacao, saldo));
-	}
-	
-	public Map<String, Double> valorPorMoeda(){
-		return agruparValorPorMoeda();
-	}
-	
-	public void retirarValorDeUmaTipoDeMoeda(Moeda moeda, double valor) {
+    public void adicionar(TipoMoeda tipo, double valor) {
+    	if (tipo == null) throw new IllegalArgumentException("O tipo de moeda não pode ser nulo.");
+    	
+    	Moeda moeda = instanciarMoeda(tipo, valor);
+    	
+        this.cofre.add(moeda);
+        registrarTransacao(moeda, true);
+    }
 
-	    if (retiradaValida(moeda.getNomeMoedaSingular(), valor, true)) {
-	        String chave = normalizaChave(moeda.getNomeMoedaSingular());
-	        double restante = valor;
+    public void retirarValorDeUmaTipoDeMoeda(TipoMoeda tipo, double valor) {
+        if (tipo == null) throw new IllegalArgumentException("O tipo de moeda não pode ser nulo.");
 
-	        for (int i = 0; i < cofre.size(); i++) {
-	            Moeda m = cofre.get(i);
+        double saldoTipo = cofre.stream()
+                .filter(m -> m.getTipo() == tipo)
+                .mapToDouble(Moeda::getValor)
+                .sum();
 
-	            if (normalizaChave(m.getNomeMoedaSingular()).equals(chave)) {
-	                double valMoeda = m.getValor();
+        if (valor > saldoTipo) {
+            throw new IllegalArgumentException("Saldo insuficiente da moeda " + tipo.getNomePlural());
+        }
 
-	                if (valMoeda <= restante) {
-	                    restante -= valMoeda;
-	                    cofre.remove(i);
-	                    i--;
-	                } else {
-	                    
-	                    m.setValor(valMoeda - restante);
-	                    restante = 0;
-	                    break;
-	                }
+        double restante = valor;
+        Iterator<Moeda> iterator = cofre.iterator();
 
-	                if (restante <= 0) break;
-	            }
-	        }
+        while (iterator.hasNext() && restante > 0) {
+            Moeda m = iterator.next();
+            if (m.getTipo() == tipo) {
+                double valMoeda = m.getValor();
+                if (valMoeda <= restante) {
+                    restante -= valMoeda;
+                    iterator.remove();
+                } else {
+                    m.setValor(valMoeda - restante);
+                    restante = 0;
+                }
+            }
+        }
 
-	        saldo -= valor;
-	        if (saldo < 0) saldo = 0;
-	    }
-	    
-	    atualizarSaldo();
-	    registrarTransacao(moeda, false);
-	}
+        registrarTransacao(instanciarMoeda(tipo, valor), false);
+    }
 
-	public void retirarValor(double valor) {
-	    if (retiradaValida("", valor, false)) {
-	        double restante = valor;
+    public void retirarValor(double valor) {
+        if (valor > getSaldo()) {
+            throw new IllegalArgumentException("Saldo total insuficiente para a retirada.");
+        }
 
-	        // Ordena do menor para o maior valor
-	        cofre.sort(Comparator.comparingDouble(Moeda::converter));
+        double restante = valor;
 
-	        for (int i = 0; i < cofre.size(); i++) {
-	            Moeda m = cofre.get(i);
-	            double valMoeda = m.getValor();
+        cofre.sort(Comparator.comparingDouble(Moeda::converter));
 
-	            if (m.converter() <= restante) {
-	                restante -= m.converter();
-	                cofre.remove(i);
-	                i--; // Corrige o índice após a remoção
-	            } else {
-	                // Moeda maior que o valor restante: reduz parcialmente
-	            	
-	                m.setValor(valMoeda - restante / m.getCambio());
-	                restante = 0;
-	                break;
-	            }
+        Iterator<Moeda> iterator = cofre.iterator();
 
-	            if (restante <= 0) break;
-	        }
+        while (iterator.hasNext() && restante > 0) {
+            Moeda m = iterator.next();
+            double valorConvertido = m.converter();
 
-	        // Atualiza o saldo
-	        saldo -= valor;
-	        if (saldo < 0) saldo = 0;
-	    }
-	    
-	    atualizarSaldo();
-	    registrarTransacao(new Real(valor, 1), false);
-	}
+            if (valorConvertido <= restante) {
+                restante -= valorConvertido;
+                iterator.remove();
+            } else {
+                double novoValor = m.getValor() - (restante / m.getCambio());
+                m.setValor(novoValor);
+                restante = 0;
+            }
+        }
 
-	public double getSaldo() {return saldo;}
-	
-	public ArrayList<HistoricoTransacao> getHistorico() {return historicoTransacoes;}
+        double valorRetirado = valor - restante;
+        registrarTransacao(new Real(valorRetirado), false); 
+    }
+
+    public double getSaldo() {
+        return cofre.stream().mapToDouble(Moeda::converter).sum();
+    }
+
+    public Map<String, Double> valorPorMoeda() {
+        Map<String, Double> mapa = new HashMap<>();
+        for (Moeda moeda : cofre) {
+            String chave = normalizaChave(moeda.getNomeMoedaSingular());
+            mapa.merge(chave, moeda.getValor(), Double::sum);
+        }
+        return mapa;
+    }
+
+    public List<HistoricoTransacao> getHistorico() {
+        return historicoTransacoes;
+    }
+
+    // ========== AUXILIARES ==========
+
+    private void registrarTransacao(Moeda moeda, boolean tipoTransacao) {
+        historicoTransacoes.add(new HistoricoTransacao(moeda, tipoTransacao, getSaldo()));
+    }
+
+    private String normalizaChave(String chave) {
+        String normalizada = Normalizer.normalize(chave.toLowerCase(), Normalizer.Form.NFD);
+        return normalizada.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+    }
+    
+    private Moeda instanciarMoeda(TipoMoeda tipo, double valor) {
+        return switch (tipo) {
+            case REAL -> new Real(valor);
+            case DOLAR -> new Dolar(valor);
+            case EURO -> new Euro(valor);
+        };
+    }
+
 }

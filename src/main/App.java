@@ -1,9 +1,8 @@
 package main;
 
 import models.Cofrinho;
-import models.Dolar;
 import models.HistoricoTransacao;
-import models.Real;
+import models.TipoMoeda;
 
 public class App {
 
@@ -11,14 +10,12 @@ public class App {
 		
 		Cofrinho cofrinho = new Cofrinho();
 		
-		Real real = new Real(50, 1);
-		Dolar dolar = new Dolar(2, 5);
-		Dolar dolar2 = new Dolar(7, 5);
+		cofrinho.adicionar(TipoMoeda.DOLAR, 2);
+		cofrinho.adicionar(TipoMoeda.REAL, 50);
+		cofrinho.adicionar(TipoMoeda.DOLAR, 7);
+		cofrinho.adicionar(TipoMoeda.EURO, 10);
 		
-		cofrinho.adicionar(dolar);
-		cofrinho.adicionar(real);
-		cofrinho.adicionar(dolar2);
-		cofrinho.retirarValorDeUmaTipoDeMoeda(dolar, 5);
+		cofrinho.retirarValorDeUmaTipoDeMoeda(TipoMoeda.DOLAR, 5);
 		cofrinho.retirarValor(15);
 		
 		for(HistoricoTransacao historico : cofrinho.getHistorico()) {

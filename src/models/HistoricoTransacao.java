@@ -3,34 +3,40 @@ package models;
 import java.time.LocalDateTime;
 
 public class HistoricoTransacao {
-	
-	private String nomeMoeda;
-    private double valorTrasacao;
+
+    private String nomeMoeda;
+    private double valorTransacao; // valor original da moeda
+    private double valorConvertido; // valor da transação em reais
     private LocalDateTime dataTransacao;
-    private boolean tipoTransacao;  // true é entrada, false é saída
+    private boolean tipoTransacao; // true = entrada, false = saída
     private double saldoAnterior;
     private double saldoAtual;
-  
-	public HistoricoTransacao(Moeda moeda, boolean tipoTransacao, double saldo) {
-		this.nomeMoeda = moeda.getNomeMoedaSingular();
-        this.valorTrasacao = moeda.getValor();
-        this.dataTransacao = LocalDateTime.now(); 
+
+    public HistoricoTransacao(Moeda moeda, boolean tipoTransacao, double saldoAtual) {
+        this.nomeMoeda = moeda.getNomeMoedaSingular();
+        this.valorTransacao = moeda.getValor();
+        this.valorConvertido = moeda.converter();
+        this.dataTransacao = LocalDateTime.now();
         this.tipoTransacao = tipoTransacao;
-        this.saldoAtual = saldo;
-        
-        if(tipoTransacao) {
-        	this.saldoAnterior = saldo - valorTrasacao;
-        }else {
-        	this.saldoAnterior = saldo + valorTrasacao;
+        this.saldoAtual = saldoAtual;
+
+        if (tipoTransacao) {
+            this.saldoAnterior = saldoAtual - valorConvertido;
+        } else {
+            this.saldoAnterior = saldoAtual + valorConvertido;
         }
-	}
-	
-	public String getNomeMoeda() {
+    }
+
+    public String getNomeMoeda() {
         return nomeMoeda;
     }
 
-    public double getValor() {
-        return valorTrasacao;
+    public double getValorTransacao() {
+        return valorTransacao;
+    }
+
+    public double getValorConvertido() {
+        return valorConvertido;
     }
 
     public LocalDateTime getDataTransacao() {
@@ -40,22 +46,23 @@ public class HistoricoTransacao {
     public boolean isTipoTransacao() {
         return tipoTransacao;
     }
-    
+
     public double getSaldoAnterior() {
-    	return saldoAnterior;
+        return saldoAnterior;
     }
-    
+
     public double getSaldoAtual() {
-    	return saldoAtual;
+        return saldoAtual;
     }
-    
+
     @Override
     public String toString() {
-        return "Transação [Tipo: " + (tipoTransacao ? "Entrada" : "Saída") + 
-               ", Moeda: " + nomeMoeda + 
-               ", Valor: " + valorTrasacao + 
-               ", Data: " + dataTransacao + 
-               ", Saldo anterior: " + saldoAnterior +
-               ". Saldo atual: " + saldoAtual + "]";
+        return "Transação [" +
+                "Tipo: " + (tipoTransacao ? "Entrada" : "Saída") +
+                ", Moeda: " + nomeMoeda +
+                ", Valor original: " + valorTransacao +
+                ", Data: " + dataTransacao +
+                ", Saldo anterior: " + saldoAnterior +
+                ", Saldo atual: " + saldoAtual + "]";
     }
 }
