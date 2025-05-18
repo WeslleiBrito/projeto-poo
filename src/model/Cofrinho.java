@@ -12,7 +12,7 @@ public class Cofrinho {
     private final DAO dao = new DAO();
 
     public Cofrinho() {
-        this.cofre = new ArrayList<>();
+        this.cofre = dao.buscarMoedas();
         this.historicoTransacoes = new ArrayList<>();
     }
 
@@ -97,8 +97,12 @@ public class Cofrinho {
     public double getSaldo() {
         return cofre.stream().mapToDouble(Moeda::converter).sum();
     }
+    
+    public List<Moeda> getCofre() {
+		return cofre;
+	}
 
-    public Map<String, Double> valorPorMoeda() {
+	public Map<String, Double> valorPorMoeda() {
         Map<String, Double> mapa = new HashMap<>();
         for (Moeda moeda : cofre) {
             String chave = normalizaChave(moeda.getNome());
@@ -120,7 +124,6 @@ public class Cofrinho {
     	
     	return tipoMoedaExiste;
     }
-    
     
     private void registrarTransacao(Moeda moeda, int tipoTransacao) {
     	HistoricoTransacao trasacao = new HistoricoTransacao(moeda, tipoTransacao, getSaldo());

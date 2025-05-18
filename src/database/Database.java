@@ -14,7 +14,7 @@ public class Database {
     	String sqlTipoMoeda = """
         		CREATE TABLE IF NOT EXISTS tipo_moeda (
         			id INTEGER PRIMARY KEY AUTOINCREMENT,
-        			nome TEXT NOT NULL,
+        			nome TEXT NOT NULL UNIQUE,
         			cambio REAL NOT NULL
         		);
 		""";
