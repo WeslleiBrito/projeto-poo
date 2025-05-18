@@ -1,33 +1,51 @@
-package models;
+package model;
 
 import java.time.LocalDateTime;
+
+import dao.DAO;
 
 public class HistoricoTransacao {
 
     private String nomeMoeda;
-    private double valorTransacao; // valor original da moeda
-    private double valorConvertido; // valor da transação em reais
+    private int codigoMoeda;
+    private double valorTransacao;
+    private double valorConvertido;
     private LocalDateTime dataTransacao;
-    private boolean tipoTransacao; // true = entrada, false = saída
+    private TipoTransacao tipoTransacao;
+    private int codigoTransacao;
     private double saldoAnterior;
     private double saldoAtual;
 
-    public HistoricoTransacao(Moeda moeda, boolean tipoTransacao, double saldoAtual) {
-        this.nomeMoeda = moeda.getNomeMoedaSingular();
+    public HistoricoTransacao(Moeda moeda, int codigoTransacao, double saldoAtual) {
+    	
+    	DAO dao = new DAO();
+    	
+    	TipoTransacao tipoTransacaoExise = dao.buscarTipoTransacaoPorID(codigoTransacao);
+    	
+    	if(tipoTransacaoExise == null) { throw new IllegalArgumentException("O tipo transação informado não existe."); }
+    	
+        this.nomeMoeda = moeda.getNome();
         this.valorTransacao = moeda.getValor();
         this.valorConvertido = moeda.converter();
         this.dataTransacao = LocalDateTime.now();
-        this.tipoTransacao = tipoTransacao;
         this.saldoAtual = saldoAtual;
-
-        if (tipoTransacao) {
+        this.tipoTransacao = tipoTransacaoExise;
+        
+        this.codigoTransacao = this.tipoTransacao.getCodigo();
+        this.codigoMoeda = moeda.getCodigo();
+        
+        if (this.tipoTransacao.getCodigo() == 1) {
             this.saldoAnterior = saldoAtual - valorConvertido;
         } else {
             this.saldoAnterior = saldoAtual + valorConvertido;
         }
     }
 
-    public String getNomeMoeda() {
+    public int getCodigoMoeda() {
+		return codigoMoeda;
+	}
+
+	public String getTipoMoeda() {
         return nomeMoeda;
     }
 
@@ -43,7 +61,7 @@ public class HistoricoTransacao {
         return dataTransacao;
     }
 
-    public boolean isTipoTransacao() {
+    public TipoTransacao getTipoTransacao() {
         return tipoTransacao;
     }
 
@@ -54,15 +72,23 @@ public class HistoricoTransacao {
     public double getSaldoAtual() {
         return saldoAtual;
     }
-
+    
+    public int getCodigoTransacao() {
+		return codigoTransacao;
+	}
+    
     @Override
     public String toString() {
         return "Transação [" +
-                "Tipo: " + (tipoTransacao ? "Entrada" : "Saída") +
+                "Tipo: " + tipoTransacao.getNome() +
                 ", Moeda: " + nomeMoeda +
                 ", Valor original: " + valorTransacao +
+                ", Valor convertido: " + valorConvertido +
                 ", Data: " + dataTransacao +
                 ", Saldo anterior: " + saldoAnterior +
-                ", Saldo atual: " + saldoAtual + "]";
+                ", Saldo atual: " + saldoAtual +
+                ']';
     }
+
+	
 }
