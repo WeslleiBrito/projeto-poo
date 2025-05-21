@@ -1,35 +1,22 @@
 package main;
 
-import models.Cofrinho;
-import models.Dolar;
-import models.Real;
+import database.Database;
+import model.Cofrinho;
+import model.Euro;
+import model.Moeda;
+
 
 public class App {
 
 	public static void main(String[] args) {
 		
+		Database.inicializar();
 		Cofrinho cofrinho = new Cofrinho();
+		Moeda mEuro = new Euro();
+		mEuro.setCodigoMoeda(3);
+		mEuro.setValor(15);
 		
-		Real real = new Real(50, 1);
-		Dolar dolar = new Dolar(2, 5);
-		Dolar dolar2 = new Dolar(7, 5);
-		
-		cofrinho.adicionar(dolar);
-		cofrinho.adicionar(real);
-		cofrinho.adicionar(dolar2);
-		
-		System.out.println(cofrinho.getSaldo());
-		System.out.println(cofrinho.valorPorMoeda());
-		
-		cofrinho.retirarValorDeUmaTipoDeMoeda(dolar2, 15);
-		
-		System.out.println(cofrinho.valorPorMoeda());
-		System.out.println(cofrinho.getSaldo());
-		
-		
-		System.out.println(cofrinho.valorPorMoeda());
-		System.out.println(cofrinho.getSaldo());
-		
-		
+		cofrinho.retirarValorSaldo(76);;
+
 	}
 }
