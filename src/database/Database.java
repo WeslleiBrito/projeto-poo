@@ -2,13 +2,31 @@ package database;
 
 import java.sql.*;
 
+
+
 public class Database {
     private static final String URL = "jdbc:sqlite:cofrinho.db";
 
     public static Connection conectar() throws SQLException {
         return DriverManager.getConnection(URL);
     }
+    
+    private static boolean tabelaEstaVazia(String nomeTabela) {
+        String sql = "SELECT 1 FROM " + nomeTabela + " LIMIT 1";
 
+        try (Connection conn = Database.conectar();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            return !rs.next();
+
+        } catch (SQLException e) {
+            System.out.println("Erro ao verificar se a tabela está vazia: " + e.getMessage());
+            return true; 
+        }
+    }
+    
+    
     public static void inicializar() {
     	
     	String sqlTipoMoeda = """
@@ -71,13 +89,24 @@ public class Database {
             Statement stmt = conn.createStatement()) {
         		stmt.execute("PRAGMA foreign_keys = ON");
 	        	stmt.execute(sqlTipoMoeda);
-	        	//stmt.execute(sqlInsertTipoMoeda);
 	        	stmt.execute(sqlTipoTransacao);
-	        	//stmt.execute(sqlInsertTipoTransacao);
 	        	stmt.execute(sqlMoeda);
 	            stmt.execute(sqlHistorico);
+	            
+	            if(tabelaEstaVazia("tipo_moeda")) {
+	            	
+	            	stmt.execute(sqlInsertTipoMoeda);
+	            }
+	            
+	            if(tabelaEstaVazia("tipo_transacao")) {
+	            	
+	            	stmt.execute(sqlInsertTipoTransacao);
+	            }
+
         } catch (SQLException e) {
             System.err.println("Erro ao criar tabelas: " + e.getMessage());
         }
     }
+    
+    
 }

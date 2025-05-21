@@ -2,9 +2,9 @@ package main;
 
 import database.Database;
 import model.Cofrinho;
-import model.HistoricoTransacao;
+import model.Euro;
 import model.Moeda;
-import model.TipoMoeda;
+
 
 public class App {
 
@@ -12,10 +12,11 @@ public class App {
 		
 		Database.inicializar();
 		Cofrinho cofrinho = new Cofrinho();
+		Moeda mEuro = new Euro();
+		mEuro.setCodigoMoeda(3);
+		mEuro.setValor(15);
 		
-		for(Moeda moeda: cofrinho.getCofre()) {
-			System.out.println(moeda.info());
-		}
-		
+		cofrinho.retirarValorSaldo(76);;
+
 	}
 }

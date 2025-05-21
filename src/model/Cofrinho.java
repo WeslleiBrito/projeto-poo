@@ -1,101 +1,148 @@
 package model;
-
 import java.text.Normalizer;
 import java.util.*;
-
 import dao.DAO;
+import util.InstanciarMoeda;
 
 public class Cofrinho {
 
-    private final List<Moeda> cofre;
+    private List<Moeda> cofre;
     private final List<HistoricoTransacao> historicoTransacoes;
     private final DAO dao = new DAO();
-
+    private InstanciarMoeda instanciar = new InstanciarMoeda();
+    
     public Cofrinho() {
-        this.cofre = dao.buscarMoedas();
+        this.atualizarCofre();
         this.historicoTransacoes = new ArrayList<>();
     }
 
-    public void adicionar(int codigoMoeda, double valor) {
+    public void adicionar(Moeda moeda) {
     	
-    	TipoMoeda tipoMoeda = validarMoeda(codigoMoeda);
+    	if(moeda.getValor() < 0.01) {
+    		throw new IllegalArgumentException("O valor de depósito mínimo é de 0.01.");
+    	}
     	
-    	Moeda moeda = instanciarMoeda(tipoMoeda.getCodigo(), valor);   	
+    	TipoMoeda tipoMoeda = validarMoeda(moeda.getCodigoMoeda());	
+    	
+    	moeda.setCambio(tipoMoeda.getCambio());
+    	moeda.setNome(tipoMoeda.getNome());
     	
         this.cofre.add(moeda);
         dao.salvarMoeda(moeda);
         
         HistoricoTransacao transacao = new HistoricoTransacao(moeda, 1, getSaldo());
-        
         dao.salvarTransacao(transacao);
-        registrarTransacao(moeda, 1);
     }
 
-    public void retirarValorDeUmaTipoDeMoeda(int codigoMoeda, double valor) {
+    public void retirarValorDeUmaTipoDeMoeda(int codigoTipoMoeda, double valor) {
     	
-    	TipoMoeda tipoMoeda = validarMoeda(codigoMoeda);
+    	TipoMoeda tipoMoeda = validarMoeda(codigoTipoMoeda);	
+    	
+    	if(!moedaExisteNoCofre(codigoTipoMoeda)) {
+    		throw new IllegalArgumentException("O tipo de moeda não existe.");
+    	}
+    	
+    	List<Moeda> listaMoeda = new ArrayList<>(buscarMoedaPorId(codigoTipoMoeda));
+    	
+        double saldoDisponivel = listaMoeda.stream().map(m -> m.getValor()).reduce(0.0, (a, b) -> a + b);
+        
+        listaMoeda.sort((a, b) -> Double.compare(a.getValor(), b.getValor()));
 
-
-        double saldoTipo = cofre.stream()
-                .filter(m -> m.getCodigo() == tipoMoeda.getCodigo())
-                .mapToDouble(Moeda::getValor)
-                .sum();
-
-        if (valor > saldoTipo) {
+        if (valor > saldoDisponivel) {
             throw new IllegalArgumentException("Saldo insuficiente da moeda " + tipoMoeda.getNome());
         }
 
         double restante = valor;
-        Iterator<Moeda> iterator = cofre.iterator();
-
+        
+        
+        
+        Iterator<Moeda> iterator = listaMoeda.iterator();
+        
+        List<Integer> deletar = new ArrayList<>();
+        
+        EditarMoeda editar = new EditarMoeda(-1, 0);
+        
         while (iterator.hasNext() && restante > 0) {
             Moeda m = iterator.next();
-            if (m.getCodigo() == tipoMoeda.getCodigo()) {
-                double valMoeda = m.getValor();
-                if (valMoeda <= restante) {
-                    restante -= valMoeda;
-                    iterator.remove();
-                } else {
-                    m.setValor(valMoeda - restante);
-                    restante = 0;
-                }
+            
+            double valMoeda = m.getValor();
+            
+            if (valMoeda <= restante) {
+                restante -= valMoeda;
+                deletar.add(m.getCodigo());
+            } else {
+   
+            	editar.setId(m.getCodigo());
+            	editar.setValor(valMoeda - restante);
+                restante = 0;
             }
+           
         }
+        
+        Moeda moedaRegistro = this.instanciar.instanciar(tipoMoeda.getCodigo());
+        
+        
+        moedaRegistro.setNome(tipoMoeda.getNome());
+        moedaRegistro.setCambio(tipoMoeda.getCambio());
+        moedaRegistro.setValor(valor);
+        
+        HistoricoTransacao transacao = new HistoricoTransacao(moedaRegistro, 2, getSaldo());
 
-        registrarTransacao(instanciarMoeda(tipoMoeda.getCodigo(), valor), 2);
+        dao.removerMoedasPorId(deletar);
+        dao.atualizarValorMoeda(editar);
+        dao.salvarTransacao(transacao);
     }
 
-    public void retirarValor(double valor) {
+    public void retirarValorSaldo(double valor) {
+    	
         if (valor > getSaldo()) {
             throw new IllegalArgumentException("Saldo total insuficiente para a retirada.");
         }
 
         double restante = valor;
+        
+        List<Moeda> listaMoedas = new ArrayList<>(dao.buscarMoedas());
+        
+        listaMoedas.sort((a, b) -> Double.compare(a.getValor(), b.getValor()));
+        
 
-        cofre.sort(Comparator.comparingDouble(Moeda::converter));
-
-        Iterator<Moeda> iterator = cofre.iterator();
+        Iterator<Moeda> iterator = listaMoedas.iterator();
+        
+        List<Integer> deletar = new ArrayList<>();
+        
+        EditarMoeda editar = new EditarMoeda(-1, 0);
 
         while (iterator.hasNext() && restante > 0) {
             Moeda m = iterator.next();
-            double valorConvertido = m.converter();
-
-            if (valorConvertido <= restante) {
-                restante -= valorConvertido;
-                iterator.remove();
+       
+            if (m.converter() <= restante) {
+                restante -= m.converter();
+                deletar.add(m.getCodigo());
             } else {
+            	
                 double novoValor = m.getValor() - (restante / m.getCambio());
-                m.setValor(novoValor);
+                editar.setId(m.getCodigo());
+            	editar.setValor(novoValor);
                 restante = 0;
             }
         }
 
-        double valorRetirado = valor - restante;
-        registrarTransacao(new Real(1, valorRetirado), 2); 
+        Moeda moedaRegistro = new Real();
+        
+        moedaRegistro.setCodigoMoeda(1);
+        moedaRegistro.setCambio(1);
+        moedaRegistro.setValor(valor);
+        
+        HistoricoTransacao transacao = new HistoricoTransacao(moedaRegistro, 2, getSaldo());
+        
+        dao.removerMoedasPorId(deletar);
+        dao.atualizarValorMoeda(editar);
+        dao.salvarTransacao(transacao);
     }
 
     public double getSaldo() {
-        return cofre.stream().mapToDouble(Moeda::converter).sum();
+    	
+        return cofre.stream().map(m -> m.converter()).reduce(0.0, (a, b) -> a + b);
     }
     
     public List<Moeda> getCofre() {
@@ -114,7 +161,6 @@ public class Cofrinho {
     public List<HistoricoTransacao> getHistorico() {
         return historicoTransacoes;
     }
-
     
     private TipoMoeda validarMoeda(int codigo) {
     	
@@ -125,23 +171,59 @@ public class Cofrinho {
     	return tipoMoedaExiste;
     }
     
-    private void registrarTransacao(Moeda moeda, int tipoTransacao) {
-    	HistoricoTransacao trasacao = new HistoricoTransacao(moeda, tipoTransacao, getSaldo());
-        historicoTransacoes.add(trasacao);
-    }
-
     private String normalizaChave(String chave) {
         String normalizada = Normalizer.normalize(chave.toLowerCase(), Normalizer.Form.NFD);
         return normalizada.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
     }
     
-    private Moeda instanciarMoeda(int codigoMoeda, double valor) {
-        return switch (codigoMoeda) {
-            case 1 -> new Real(1, valor);
-            case 2 -> new Dolar(2, valor);
-            case 3 -> new Euro(2, valor);
-		default -> throw new IllegalArgumentException("Unexpected value: " + codigoMoeda);
-        };
-    }
+    public List<Moeda> classificaMoeda(){
+    	
+    	List<Moeda> categoriaMoeda = new ArrayList<>();
+    	
 
+    	for(Moeda moeda: cofre) {
+    		
+    		boolean moedaExist = false;
+    		
+    		for(Moeda m: categoriaMoeda) {
+    			
+    			if(moeda.getCodigoMoeda() == m.getCodigoMoeda()) {
+    				m.setValor(m.getValor() + moeda.getValor());
+    				moedaExist = true;
+    			}
+    		}
+    		
+    		if(!moedaExist) {
+    			categoriaMoeda.add(moeda);
+    		}
+    	}
+    	
+    	return categoriaMoeda;
+    	
+    }
+    
+    public List<Moeda> buscarMoedaPorId(int codigoMoeda){
+    	
+    	return cofre.stream().filter(moeda -> moeda.getCodigoMoeda() == codigoMoeda).toList();
+    }
+    
+    private boolean moedaExisteNoCofre(int codigo) {
+    	
+    	boolean teste = false;
+    	
+    	for(Moeda m : cofre) {
+    		
+    		if(m.getCodigoMoeda() == codigo) {
+    			
+    			teste = true;
+    		}
+    	}
+    	
+    	return teste;
+    }
+    
+    private void atualizarCofre() {
+    	this.cofre = dao.buscarMoedas();
+    }
+    
 }

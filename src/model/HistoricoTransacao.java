@@ -32,13 +32,15 @@ public class HistoricoTransacao {
         this.tipoTransacao = tipoTransacaoExise;
         
         this.codigoTransacao = this.tipoTransacao.getCodigo();
-        this.codigoMoeda = moeda.getCodigo();
-        
+        this.codigoMoeda = moeda.getCodigoMoeda();
+
         if (this.tipoTransacao.getCodigo() == 1) {
+        	
             this.saldoAnterior = saldoAtual - valorConvertido;
         } else {
             this.saldoAnterior = saldoAtual + valorConvertido;
         }
+        
     }
 
     public int getCodigoMoeda() {

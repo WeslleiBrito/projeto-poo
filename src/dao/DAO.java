@@ -2,6 +2,7 @@ package dao;
 
 import database.Database;
 import model.Dolar;
+import model.EditarMoeda;
 import model.Euro;
 import model.HistoricoTransacao;
 import model.Moeda;
@@ -15,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+
 
 public class DAO {
 
@@ -65,6 +67,37 @@ public class DAO {
 	    return null;
 	}
 	
+	public Moeda buscarMoedaPorID(Integer codigo) {
+		String sql = "SELECT moeda.id as id_moeda, tipo_moeda.id as id_tipo_moeda, moeda.valor, tipo_moeda.nome, tipo_moeda.cambio"
+				+ " FROM moeda INNER JOIN tipo_moeda ON moeda.tipo_moeda_id = tipo_moeda.id WHERE ID = ?";
+		   
+
+	    try (Connection conn = Database.conectar();
+	         PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+	    	stmt.setInt(1, codigo);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+            	
+            	Moeda m = instanciarMoeda(rs.getInt("id_tipo_moeda"));
+            	
+            	m.setCodigo(rs.getInt("id_moeda"));
+            	m.setCodigoMoeda(rs.getInt("id_tipo_moeda"));
+            	m.setNome(rs.getString("nome"));
+            	m.setCambio(rs.getDouble("cambio"));
+            	m.setValor(rs.getDouble("valor"));
+            	
+            	return m;
+            }
+
+	    } catch (SQLException e) {
+	        System.err.println("Erro ao buscar TipoMoeda: " + e.getMessage());
+	    }
+
+	    return null;
+	}
+	
 	public void salvarMoeda(Moeda moeda) {
 	    String sql = """
 	        INSERT INTO moeda (tipo_moeda_id, valor)
@@ -74,7 +107,7 @@ public class DAO {
 	    try (Connection conn = Database.conectar();
 	         PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-	        stmt.setInt(1, moeda.getCodigo());
+	        stmt.setInt(1, moeda.getCodigoMoeda());
 	        stmt.setDouble(2, moeda.getValor());
 	        stmt.executeUpdate();
 
@@ -124,11 +157,11 @@ public class DAO {
 	    }
 	}
 	
-	private Moeda instanciarMoeda(int codigoMoeda, double valor) {
+	private Moeda instanciarMoeda(int codigoMoeda) {
         return switch (codigoMoeda) {
-            case 1 -> new Real(1, valor);
-            case 2 -> new Dolar(2, valor);
-            case 3 -> new Euro(2, valor);
+            case 1 -> new Real();
+            case 2 -> new Dolar();
+            case 3 -> new Euro();
 		default -> throw new IllegalArgumentException("Unexpected value: " + codigoMoeda);
         };
     }
@@ -137,27 +170,52 @@ public class DAO {
 		
 		List<Moeda> moedas = new ArrayList<>();
 		
-		String sql = "SELECT * FROM moeda";
+		String sql = "SELECT moeda.id as id_moeda, tipo_moeda.id as id_tipo_moeda, moeda.valor, tipo_moeda.nome, tipo_moeda.cambio"
+				+ " FROM moeda INNER JOIN tipo_moeda ON moeda.tipo_moeda_id = tipo_moeda.id";
 		
 		try (Connection conn = Database.conectar();
 		         PreparedStatement stmt = conn.prepareStatement(sql);
 		         ResultSet rs = stmt.executeQuery()) {
 
 		        while (rs.next()) {
-		
-		            int id = rs.getInt("tipo_moeda_id");
-		            double valor = rs.getDouble("valor");
-		            Moeda moeda = instanciarMoeda(id, valor);
+
+		            
+		            Moeda m = instanciarMoeda(rs.getInt("id_tipo_moeda"));
+	            	
+	            	m.setCodigo(rs.getInt("id_moeda"));
+	            	m.setCodigoMoeda(rs.getInt("id_tipo_moeda"));
+	            	m.setNome(rs.getString("nome"));
+	            	m.setCambio(rs.getDouble("cambio"));
+	            	m.setValor(rs.getDouble("valor"));
 		          
 
-		            moedas.add(moeda);
+		            moedas.add(m);
 		        }
-
+		        
 		    } catch (SQLException e) {
 		        System.err.println("Erro ao buscar Moedas: " + e.getMessage());
 		    }
 
 		    return moedas;
 	}
+	
+	
+	public void atualizarValorMoeda(EditarMoeda em) {
 
+		String sql = "UPDATE moeda SET valor = ? WHERE id = ?";
+		
+		try (Connection conn = Database.conectar();
+		         PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+		        stmt.setDouble(1, em.getValor());
+		        stmt.setInt(2, em.getId());
+		        
+		        stmt.executeUpdate();
+		        
+		    } catch (SQLException e) {
+		        System.out.println("Erro ao atualizar valor da moeda: " + e.getMessage());
+		    }
+	}
+	
+	
 }
