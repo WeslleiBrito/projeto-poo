@@ -1,26 +1,30 @@
 package dao;
 
 import database.Database;
-import model.Dolar;
 import model.EditarMoeda;
-import model.Euro;
 import model.HistoricoTransacao;
 import model.Moeda;
-import model.Real;
 import model.TipoMoeda;
 import model.TipoTransacao;
+import util.InstanciarMoeda;
 import java.util.List;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 
 
 public class DAO {
-
-	public TipoMoeda buscarTipoMoedaPorID(Integer codigo) {
+	
+	private InstanciarMoeda instanciarMoeda = new InstanciarMoeda();
+	
+ 	public TipoMoeda buscarTipoMoedaPorID(Integer codigo) {
 		
 		String sql = "SELECT * FROM tipo_moeda WHERE ID = ?";
 	   
@@ -80,7 +84,7 @@ public class DAO {
 
             if (rs.next()) {
             	
-            	Moeda m = instanciarMoeda(rs.getInt("id_tipo_moeda"));
+            	Moeda m = instanciarMoeda.instanciar(rs.getInt("id_tipo_moeda"));
             	
             	m.setCodigo(rs.getInt("id_moeda"));
             	m.setCodigoMoeda(rs.getInt("id_tipo_moeda"));
@@ -157,14 +161,54 @@ public class DAO {
 	    }
 	}
 	
-	private Moeda instanciarMoeda(int codigoMoeda) {
-        return switch (codigoMoeda) {
-            case 1 -> new Real();
-            case 2 -> new Dolar();
-            case 3 -> new Euro();
-		default -> throw new IllegalArgumentException("Unexpected value: " + codigoMoeda);
-        };
-    }
+	public List<HistoricoTransacao> buscarHistoricoTransacoes() {
+		
+		List<HistoricoTransacao> listaHistorico = new ArrayList<>();
+		
+		
+		String sql = "SELECT historico_transacao.id as id_transacao, tipo_moeda_id, tipo_transacao_id,"
+				+ " valor, saldo_anterior, saldo_pos, data,"
+				+ "tipo_moeda.nome as nome_moeda, tipo_transacao.nome as nome_transacao"
+				+ " FROM historico_transacao "
+				+ "INNER JOIN tipo_moeda ON historico_transacao.tipo_moeda_id = tipo_moeda.id "
+				+ "INNER JOIN tipo_transacao ON historico_transacao.tipo_transacao_id = tipo_transacao.id";
+		
+		try (Connection conn = Database.conectar();
+		         PreparedStatement stmt = conn.prepareStatement(sql);
+		         ResultSet rs = stmt.executeQuery()) {
+
+		        while (rs.next()) {
+		        	int idHistoricoTransacao = rs.getInt("id_transacao");
+		        	int idTipoMoeda = rs.getInt("tipo_moeda_id");
+		        	int tipoTrasacao = rs.getInt("tipo_transacao_id");;
+		            String nomeMoeda = rs.getString("nome_moeda");
+		            double valorTransacao = rs.getDouble("valor");
+		            double saldoAtual = rs.getDouble("saldo_pos");
+		            double saldoAnterior = rs.getDouble("saldo_anterior");
+		            ZonedDateTime dataTrasacao = converteFuso(rs.getString("data"));
+		            
+		            HistoricoTransacao h = new HistoricoTransacao(
+		            		idHistoricoTransacao, 
+		            		idTipoMoeda, 
+		            		tipoTrasacao, 
+		            		nomeMoeda, 
+		            		valorTransacao, 
+		            		saldoAtual, 
+		            		saldoAnterior, 
+		            		dataTrasacao
+		           );
+		           
+
+	            	listaHistorico.add(h);
+		        }
+		        
+		    } catch (SQLException e) {
+		        System.err.println("Erro ao buscar Histórico de transações: " + e.getMessage());
+		    }
+
+		    return listaHistorico;
+		
+	}
 	
 	public List<Moeda> buscarMoedas() {
 		
@@ -180,7 +224,7 @@ public class DAO {
 		        while (rs.next()) {
 
 		            
-		            Moeda m = instanciarMoeda(rs.getInt("id_tipo_moeda"));
+		            Moeda m = instanciarMoeda.instanciar(rs.getInt("id_tipo_moeda"));
 	            	
 	            	m.setCodigo(rs.getInt("id_moeda"));
 	            	m.setCodigoMoeda(rs.getInt("id_tipo_moeda"));
@@ -199,22 +243,32 @@ public class DAO {
 		    return moedas;
 	}
 	
-	
-	public void atualizarValorMoeda(EditarMoeda em) {
+	public void atualizarValorMoeda(EditarMoeda codigoRegistroMoeda) {
 
 		String sql = "UPDATE moeda SET valor = ? WHERE id = ?";
 		
 		try (Connection conn = Database.conectar();
 		         PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-		        stmt.setDouble(1, em.getValor());
-		        stmt.setInt(2, em.getId());
+		        stmt.setDouble(1, codigoRegistroMoeda.getValor());
+		        stmt.setInt(2, codigoRegistroMoeda.getId());
 		        
 		        stmt.executeUpdate();
 		        
 		    } catch (SQLException e) {
 		        System.out.println("Erro ao atualizar valor da moeda: " + e.getMessage());
 		    }
+	}
+	
+	private ZonedDateTime converteFuso(String dataString) {
+		
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+		
+		LocalDateTime localDateTime = LocalDateTime.parse(dataString, formatter);
+		
+		ZonedDateTime data = localDateTime.atZone(ZoneId.of("America/Sao_Paulo"));
+		
+		return data;
 	}
 	
 	

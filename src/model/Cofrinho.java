@@ -1,21 +1,17 @@
 package model;
-import java.text.Normalizer;
+
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import dao.DAO;
 import util.InstanciarMoeda;
 
 public class Cofrinho {
 
-    private List<Moeda> cofre;
-    private final List<HistoricoTransacao> historicoTransacoes;
     private final DAO dao = new DAO();
     private InstanciarMoeda instanciar = new InstanciarMoeda();
     
-    public Cofrinho() {
-        this.atualizarCofre();
-        this.historicoTransacoes = new ArrayList<>();
-    }
-
+    
     public void adicionar(Moeda moeda) {
     	
     	if(moeda.getValor() < 0.01) {
@@ -27,10 +23,20 @@ public class Cofrinho {
     	moeda.setCambio(tipoMoeda.getCambio());
     	moeda.setNome(tipoMoeda.getNome());
     	
-        this.cofre.add(moeda);
-        dao.salvarMoeda(moeda);
         
-        HistoricoTransacao transacao = new HistoricoTransacao(moeda, 1, getSaldo());
+        
+        int idTipoMoeda = moeda.getCodigoMoeda();
+        String nomeMoeda = moeda.getNome();
+        double valorTransacao = moeda.getValor();
+        ZonedDateTime dataTrasacao = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo"));
+        double saldoAnterior = getSaldo();
+        double saldoAtual = getSaldo() + moeda.converter();
+        int tipoTrasacao = 1;
+        
+        HistoricoTransacao transacao = new HistoricoTransacao(null, idTipoMoeda, tipoTrasacao, nomeMoeda, 
+        		valorTransacao, saldoAtual, saldoAnterior, dataTrasacao);
+        
+        dao.salvarMoeda(moeda);
         dao.salvarTransacao(transacao);
     }
 
@@ -38,11 +44,11 @@ public class Cofrinho {
     	
     	TipoMoeda tipoMoeda = validarMoeda(codigoTipoMoeda);	
     	
-    	if(!moedaExisteNoCofre(codigoTipoMoeda)) {
+    	if(!moedaExiste(codigoTipoMoeda)) {
     		throw new IllegalArgumentException("O tipo de moeda não existe.");
     	}
     	
-    	List<Moeda> listaMoeda = new ArrayList<>(buscarMoedaPorId(codigoTipoMoeda));
+    	List<Moeda> listaMoeda = new ArrayList<>(selecionarMoedasPorId(codigoTipoMoeda));
     	
         double saldoDisponivel = listaMoeda.stream().map(m -> m.getValor()).reduce(0.0, (a, b) -> a + b);
         
@@ -81,12 +87,21 @@ public class Cofrinho {
         
         Moeda moedaRegistro = this.instanciar.instanciar(tipoMoeda.getCodigo());
         
-        
+        moedaRegistro.setCodigoMoeda(codigoTipoMoeda);
         moedaRegistro.setNome(tipoMoeda.getNome());
         moedaRegistro.setCambio(tipoMoeda.getCambio());
         moedaRegistro.setValor(valor);
         
-        HistoricoTransacao transacao = new HistoricoTransacao(moedaRegistro, 2, getSaldo());
+        int idTipoMoeda = moedaRegistro.getCodigoMoeda();
+        String nomeMoeda = moedaRegistro.getNome();
+        double valorTransacao = moedaRegistro.getValor();
+        ZonedDateTime dataTrasacao = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo"));
+        double saldoAnterior = getSaldo();
+        double saldoAtual = getSaldo() - moedaRegistro.converter();
+        int tipoTrasacao = 2;
+        
+        HistoricoTransacao transacao = new HistoricoTransacao(null, idTipoMoeda, tipoTrasacao, nomeMoeda, 
+        		valorTransacao, saldoAtual, saldoAnterior, dataTrasacao);
 
         dao.removerMoedasPorId(deletar);
         dao.atualizarValorMoeda(editar);
@@ -126,14 +141,21 @@ public class Cofrinho {
                 restante = 0;
             }
         }
-
-        Moeda moedaRegistro = new Real();
         
-        moedaRegistro.setCodigoMoeda(1);
-        moedaRegistro.setCambio(1);
-        moedaRegistro.setValor(valor);
         
-        HistoricoTransacao transacao = new HistoricoTransacao(moedaRegistro, 2, getSaldo());
+        Moeda moedaRegistro = selecionarMoedasPorId(1).getFirst();
+        
+        
+        int idTipoMoeda = moedaRegistro.getCodigoMoeda();
+        String nomeMoeda = moedaRegistro.getNome();
+        double valorTransacao = moedaRegistro.getValor();
+        ZonedDateTime dataTrasacao = ZonedDateTime.now(ZoneId.of("America/Sao_Paulo"));
+        double saldoAnterior = getSaldo();
+        double saldoAtual = getSaldo() - moedaRegistro.converter();
+        int tipoTrasacao = 2;
+        
+        HistoricoTransacao transacao = new HistoricoTransacao(null, idTipoMoeda, tipoTrasacao, nomeMoeda, 
+        		valorTransacao, saldoAtual, saldoAnterior, dataTrasacao);
         
         dao.removerMoedasPorId(deletar);
         dao.atualizarValorMoeda(editar);
@@ -142,76 +164,24 @@ public class Cofrinho {
 
     public double getSaldo() {
     	
-        return cofre.stream().map(m -> m.converter()).reduce(0.0, (a, b) -> a + b);
+        return dao.buscarMoedas().stream().map(m -> m.converter()).reduce(0.0, (a, b) -> a + b);
     }
     
-    public List<Moeda> getCofre() {
-		return cofre;
-	}
-
-	public Map<String, Double> valorPorMoeda() {
-        Map<String, Double> mapa = new HashMap<>();
-        for (Moeda moeda : cofre) {
-            String chave = normalizaChave(moeda.getNome());
-            mapa.merge(chave, moeda.getValor(), Double::sum);
-        }
-        return mapa;
-    }
-
     public List<HistoricoTransacao> getHistorico() {
-        return historicoTransacoes;
+        return dao.buscarHistoricoTransacoes();
     }
     
-    private TipoMoeda validarMoeda(int codigo) {
+    
+    public List<Moeda> selecionarMoedasPorId(int codigoMoeda){
     	
-    	TipoMoeda tipoMoedaExiste = this.dao.buscarTipoMoedaPorID(codigo);
-    	
-    	if (tipoMoedaExiste == null) throw new IllegalArgumentException("O tipo de moeda não existe.");
-    	
-    	return tipoMoedaExiste;
+    	return dao.buscarMoedas().stream().filter(moeda -> moeda.getCodigoMoeda() == codigoMoeda).toList();
     }
     
-    private String normalizaChave(String chave) {
-        String normalizada = Normalizer.normalize(chave.toLowerCase(), Normalizer.Form.NFD);
-        return normalizada.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
-    }
-    
-    public List<Moeda> classificaMoeda(){
-    	
-    	List<Moeda> categoriaMoeda = new ArrayList<>();
-    	
-
-    	for(Moeda moeda: cofre) {
-    		
-    		boolean moedaExist = false;
-    		
-    		for(Moeda m: categoriaMoeda) {
-    			
-    			if(moeda.getCodigoMoeda() == m.getCodigoMoeda()) {
-    				m.setValor(m.getValor() + moeda.getValor());
-    				moedaExist = true;
-    			}
-    		}
-    		
-    		if(!moedaExist) {
-    			categoriaMoeda.add(moeda);
-    		}
-    	}
-    	
-    	return categoriaMoeda;
-    	
-    }
-    
-    public List<Moeda> buscarMoedaPorId(int codigoMoeda){
-    	
-    	return cofre.stream().filter(moeda -> moeda.getCodigoMoeda() == codigoMoeda).toList();
-    }
-    
-    private boolean moedaExisteNoCofre(int codigo) {
+    private boolean moedaExiste(int codigo) {
     	
     	boolean teste = false;
     	
-    	for(Moeda m : cofre) {
+    	for(Moeda m : dao.buscarMoedas()) {
     		
     		if(m.getCodigoMoeda() == codigo) {
     			
@@ -222,8 +192,14 @@ public class Cofrinho {
     	return teste;
     }
     
-    private void atualizarCofre() {
-    	this.cofre = dao.buscarMoedas();
+    private TipoMoeda validarMoeda(int codigo) {
+    	
+    	TipoMoeda tipoMoedaExiste = this.dao.buscarTipoMoedaPorID(codigo);
+    	
+    	if (tipoMoedaExiste == null) throw new IllegalArgumentException("O tipo de moeda não existe.");
+    	
+    	return tipoMoedaExiste;
     }
+
     
 }
