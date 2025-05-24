@@ -23,8 +23,6 @@ public class Cofrinho {
     	moeda.setCambio(tipoMoeda.getCambio());
     	moeda.setNome(tipoMoeda.getNome());
     	
-        
-        
         int idTipoMoeda = moeda.getCodigoMoeda();
         String nomeMoeda = moeda.getNome();
         double valorTransacao = moeda.getValor();
@@ -38,6 +36,7 @@ public class Cofrinho {
         
         dao.salvarMoeda(moeda);
         dao.salvarTransacao(transacao);
+        System.out.println("Depósito efetuado com sucesso!");
     }
 
     public void retirarValorDeUmaTipoDeMoeda(int codigoTipoMoeda, double valor) {
@@ -106,6 +105,7 @@ public class Cofrinho {
         dao.removerMoedasPorId(deletar);
         dao.atualizarValorMoeda(editar);
         dao.salvarTransacao(transacao);
+        System.out.println("Saque efetuado com sucesso!");
     }
 
     public void retirarValorSaldo(double valor) {
@@ -160,6 +160,7 @@ public class Cofrinho {
         dao.removerMoedasPorId(deletar);
         dao.atualizarValorMoeda(editar);
         dao.salvarTransacao(transacao);
+        System.out.println("Saque efetuado com sucesso!");
     }
 
     public double getSaldo() {
@@ -169,6 +170,11 @@ public class Cofrinho {
     
     public List<HistoricoTransacao> getHistorico() {
         return dao.buscarHistoricoTransacoes();
+    }
+    
+    
+    public List<TipoMoeda> getTipoMoedas() {
+    	return dao.buscarTipoMoeda();
     }
     
     

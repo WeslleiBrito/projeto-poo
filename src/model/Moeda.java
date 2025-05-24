@@ -3,16 +3,16 @@ package model;
 
 public abstract class Moeda {
 
+	private int codigoTipoMoeda;
 	private int codigo;
 	private String nome;
 	private double cambio;
     private double valor;
-    private int codigoMoeda;
     
     
  
-	public Moeda() {
-
+	protected Moeda(int codigoTipoMoeda) {
+		this.codigoTipoMoeda = codigoTipoMoeda;
     }
 
     public void setCodigo(int codigo) {
@@ -24,7 +24,7 @@ public abstract class Moeda {
 	}
 
 	public void setCodigoMoeda(int codigoMoeda) {
-		this.codigoMoeda = codigoMoeda;
+		this.codigoTipoMoeda = codigoMoeda;
 	}
 
 	public String info() {   
@@ -54,7 +54,7 @@ public abstract class Moeda {
     }
 
 	public int getCodigoMoeda() {
-		return codigoMoeda;
+		return codigoTipoMoeda;
 	}
 	
 	public String getNome() {

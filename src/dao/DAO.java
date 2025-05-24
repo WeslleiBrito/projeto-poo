@@ -24,6 +24,39 @@ public class DAO {
 	
 	private InstanciarMoeda instanciarMoeda = new InstanciarMoeda();
 	
+	
+	public List<TipoMoeda> buscarTipoMoeda() {
+		String sql = "SELECT * FROM tipo_moeda";
+		
+		List<TipoMoeda> listaTipoMoeda = new ArrayList<>();
+		
+		try (Connection conn = Database.conectar();
+		         PreparedStatement stmt = conn.prepareStatement(sql);
+		         ResultSet rs = stmt.executeQuery()) {
+
+		        while (rs.next()) {
+		        	int id = rs.getInt("id");
+		            String nome = rs.getString("nome");
+		            double cambio = rs.getDouble("cambio");
+		            
+		            TipoMoeda tMoeda = new TipoMoeda(
+		            		id, 
+		            		nome, 
+		            		cambio
+		            );
+		           
+
+	            	listaTipoMoeda.add(tMoeda);
+		        }
+		        
+		    } catch (SQLException e) {
+		        System.err.println("Erro ao buscar Histórico de transações: " + e.getMessage());
+		    }
+
+		    return listaTipoMoeda;
+		
+	}
+	
  	public TipoMoeda buscarTipoMoedaPorID(Integer codigo) {
 		
 		String sql = "SELECT * FROM tipo_moeda WHERE ID = ?";
