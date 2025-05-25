@@ -6,12 +6,12 @@ import model.Real;
 
 public class InstanciarMoeda {
 	
-		public Moeda instanciar (int idTipoMoeda) {
+		public Moeda instanciar (int idTipoMoeda, double valor) {
 			
 			return switch (idTipoMoeda) {
-	        case 1 -> new Real();
-	        case 2 -> new Dolar();
-	        case 3 -> new Euro();
+	        case 1 -> new Real(valor);
+	        case 2 -> new Dolar(valor);
+	        case 3 -> new Euro(valor);
 	        default -> throw new IllegalArgumentException("Unexpected value: " + idTipoMoeda);
 	    };
 	}

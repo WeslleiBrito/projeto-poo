@@ -11,8 +11,9 @@ public abstract class Moeda {
     
     
  
-	protected Moeda(int codigoTipoMoeda) {
+	protected Moeda(int codigoTipoMoeda, double valor) {
 		this.codigoTipoMoeda = codigoTipoMoeda;
+		this.valor = valor;
     }
 
     public void setCodigo(int codigo) {

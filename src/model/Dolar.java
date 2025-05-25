@@ -2,8 +2,8 @@ package model;
 
 public class Dolar extends Moeda{
 
-	public Dolar() {
-		super(2);
+	public Dolar(double valor) {
+		super(2, valor);
 	}
 
 }
